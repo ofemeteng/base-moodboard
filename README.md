@@ -7,7 +7,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-oncha
 - [Tailwind CSS](https://tailwindcss.com)
 - [Next.js](https://nextjs.org/docs)
 
-## Getting Started
+## Getting Started with Moonboard
 
 1. Install dependencies:
 ```bash
