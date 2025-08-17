@@ -87,12 +87,13 @@ const Moodboard = ({ address }) => {
 
     const handleShare = () => {
         // Create a rich share message with the mood NFT details
-        const shareText = `Just minted my daily mood NFT! ${selectedEmoji} "${moodText}" 
+        const shareText = 
+        `Just minted my daily mood NFT! ${selectedEmoji} "${moodText}" 
     
         🎨 Mood: ${selectedColor.name}
         🗓️ ${new Date().toDateString()}
         💎 Token #${mintedNFT?.tokenId}
-        ⛓️ Minted on @base 
+        ⛓️ Minted on @base.base.eth 
         
         #MoodNFT #Base #DailyMood #NFT`;
 
