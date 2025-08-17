@@ -3,8 +3,8 @@
 import {
   useMiniKit,
   useAddFrame,
-  useOpenUrl,
 } from "@coinbase/onchainkit/minikit";
+import { useAccount } from "wagmi";
 import {
   Name,
   Identity,
@@ -21,16 +21,13 @@ import {
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Button } from "./components/DemoComponents";
 import { Icon } from "./components/DemoComponents";
-import { Home } from "./components/DemoComponents";
-import { Features } from "./components/DemoComponents";
+import Moodboard from "./components/Moodboard";
 
 export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
+  const { address } = useAccount();
   const [frameAdded, setFrameAdded] = useState(false);
-  const [activeTab, setActiveTab] = useState("home");
-
   const addFrame = useAddFrame();
-  const openUrl = useOpenUrl();
 
   useEffect(() => {
     if (!isFrameReady) {
@@ -96,20 +93,8 @@ export default function App() {
         </header>
 
         <main className="flex-1">
-          {activeTab === "home" && <Home setActiveTab={setActiveTab} />}
-          {activeTab === "features" && <Features setActiveTab={setActiveTab} />}
+        <Moodboard address={address} />
         </main>
-
-        <footer className="mt-2 pt-4 flex justify-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-[var(--ock-text-foreground-muted)] text-xs"
-            onClick={() => openUrl("https://base.org/builders/minikit")}
-          >
-            Built on Base with MiniKit
-          </Button>
-        </footer>
       </div>
     </div>
   );
