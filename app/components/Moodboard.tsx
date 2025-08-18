@@ -2,7 +2,9 @@
 
 import React, { useState } from 'react';
 import { Heart, Palette, Sparkles, CheckCircle, Share2, Calendar } from 'lucide-react';
-import { useComposeCast } from '@coinbase/onchainkit/minikit';
+import { useComposeCast, useOpenUrl } from '@coinbase/onchainkit/minikit';
+import { useWriteContract } from 'wagmi';
+import { abi } from "../../contracts/./abi";
 
 // Mood colors and emojis
 const MOOD_COLORS = [
@@ -16,15 +18,35 @@ const MOOD_COLORS = [
 
 const MOOD_EMOJIS = ['😊', '😌', '🔥', '🎨', '🌱', '✨', '💫', '🌈', '🦋', '🌸', '🍃', '💎'];
 
+const BASE_MOODBOARD_CONTRACT_ADDRESS = '0x04B57F3A91a360423B7D7D4dF77063FE5D787489'
+
 const Moodboard = ({ address }) => {
     const { composeCast } = useComposeCast();
+    const openUrl = useOpenUrl();
     const [step, setStep] = useState('form'); // 'form', 'connected', 'minted'
     const [selectedEmoji, setSelectedEmoji] = useState('😊');
     const [selectedColor, setSelectedColor] = useState(MOOD_COLORS[0]);
     const [moodText, setMoodText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [mintedNFT, setMintedNFT] = useState(null);
+    const { data: hash, writeContract } = useWriteContract();
 
+    const uploadToPinata = async (metadata: any) => {
+        const res = await fetch('/api/uploadMetadata', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(metadata),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            console.error('Pinata upload failed', data);
+            return null;
+        }
+
+        return `https://gateway.pinata.cloud/ipfs/${data.ipfsHash}`;
+    };
 
 
     const handleSetMood = async () => {
@@ -62,23 +84,43 @@ const Moodboard = ({ address }) => {
     const handleMint = async () => {
         setIsLoading(true);
         try {
-            // Mock NFT minting - replace with actual contract interaction
-            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            const metadata = {
+                name: `Base Moodboard - ${new Date().toDateString()}`,
+                description: `${selectedEmoji} ${moodText}`,
+                attributes: [
+                    { trait_type: "emoji", value: selectedEmoji },
+                    { trait_type: "color", value: selectedColor.color },
+                    { trait_type: "text", value: moodText }
+                ]
+            };
+
+            const ipfsURI = await uploadToPinata(metadata);
+            console.log('IPFS URI:', ipfsURI);
+
+            console.log("Minting Address: ", BASE_MOODBOARD_CONTRACT_ADDRESS)
+            console.log("My Address: ", address)
+            console.log("My Address: ", address as `0x${string}`)
+            
+            writeContract({
+                address: BASE_MOODBOARD_CONTRACT_ADDRESS as `0x${string}`,
+                abi,
+                functionName: 'safeMint',
+                args: [address, ipfsURI],
+                chainId: 8453,
+            });
 
             const nft = {
-                id: Math.random().toString(36).substr(2, 9),
                 emoji: selectedEmoji,
                 color: selectedColor.color,
                 text: moodText,
                 timestamp: new Date(),
-                tokenId: Math.floor(Math.random() * 10000)
             };
 
             setMintedNFT(nft);
-            // localStorage.setItem('lastMoodPost', new Date().toISOString());
-            // setHasPostedToday(true);
-            setStep('minted');
+
         } catch (error) {
+            setStep('error');
             console.error('Minting failed:', error);
         } finally {
             setIsLoading(false);
@@ -87,12 +129,11 @@ const Moodboard = ({ address }) => {
 
     const handleShare = () => {
         // Create a rich share message with the mood NFT details
-        const shareText = 
-        `Just minted my daily mood NFT! ${selectedEmoji} "${moodText}" 
+        const shareText =
+            `Just minted my daily mood NFT! ${selectedEmoji} "${moodText}" 
     
         🎨 Mood: ${selectedColor.name}
         🗓️ ${new Date().toDateString()}
-        💎 Token #${mintedNFT?.tokenId}
         ⛓️ Minted on @base.base.eth 
         
         #MoodNFT #Base #DailyMood #NFT`;
@@ -208,6 +249,52 @@ const Moodboard = ({ address }) => {
         );
     }
 
+    if (step === 'error') {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-red-100 via-orange-50 to-yellow-100 p-4">
+                <div className="max-w-md mx-auto bg-white rounded-3xl shadow-lg p-6 text-center">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Something Went Wrong</h2>
+                    <p className="text-gray-600 mb-6">
+                        We encountered an issue while processing your mood NFT. Please try again.
+                    </p>
+
+                    <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6">
+                        <div className="flex items-center justify-center space-x-2 text-red-700">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="text-sm font-medium">Transaction failed or was rejected</span>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={() => {
+                            setStep('form');
+                            setIsLoading(false);
+                        }}
+                        className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold py-4 px-6 rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all transform hover:scale-105"
+                    >
+                        <div className="flex items-center justify-center space-x-2">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                            <span>Try Again</span>
+                        </div>
+                    </button>
+
+                    <p className="text-xs text-gray-500 mt-3">
+                        You can modify your mood and try minting again
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
     if (step === 'minted') {
         return (
             <div className="min-h-screen bg-gradient-to-br from-green-100 via-blue-50 to-purple-100 p-4 flex items-center justify-center">
@@ -229,7 +316,7 @@ const Moodboard = ({ address }) => {
                     </div>
 
                     <div className="text-sm text-gray-600 space-y-1 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-4 mb-6">
-                        <p><strong>Token ID:</strong> #{mintedNFT?.tokenId}</p>
+                        {hash && <button onClick={() => openUrl(`https://basescan.org/tx/${hash}`)}>View Transaction</button>}
                         <p><strong>Minted:</strong> {new Date().toLocaleString()}</p>
                         <p><strong>Network:</strong> Base</p>
                         <p><strong>Owner:</strong> {address}</p>
