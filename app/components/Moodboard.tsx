@@ -23,13 +23,16 @@ const BASE_MOODBOARD_CONTRACT_ADDRESS = '0x04B57F3A91a360423B7D7D4dF77063FE5D787
 const Moodboard = ({ address }) => {
     const { composeCast } = useComposeCast();
     const openUrl = useOpenUrl();
-    const [step, setStep] = useState('form'); // 'form', 'connected', 'minted'
+    const [step, setStep] = useState('form'); // 'form', 'error', 'minted'
     const [selectedEmoji, setSelectedEmoji] = useState('😊');
     const [selectedColor, setSelectedColor] = useState(MOOD_COLORS[0]);
     const [moodText, setMoodText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [mintedNFT, setMintedNFT] = useState(null);
-    const { data: hash, writeContract } = useWriteContract();
+    const { data: hash, isPending, writeContract } = useWriteContract();
+
+    console.log('hash from first load: ', hash);
+    console.log('isPending from first load: ', isPending);
 
     const uploadToPinata = async (metadata: any) => {
         const res = await fetch('/api/uploadMetadata', {
@@ -117,8 +120,12 @@ const Moodboard = ({ address }) => {
                 timestamp: new Date(),
             };
 
-            setMintedNFT(nft);
+            console.log('hash from Mint function: ', hash);
+            console.log('isPending from Mint function: ', isPending);
 
+            setMintedNFT(nft);
+            // setStep('minted');
+            
         } catch (error) {
             setStep('error');
             console.error('Minting failed:', error);
@@ -147,106 +154,154 @@ const Moodboard = ({ address }) => {
     };
 
     if (step === 'form') {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100 p-4">
-                <div className="max-w-md mx-auto bg-white rounded-3xl shadow-lg p-6">
-                    <div className="text-center mb-6">
-                        <Heart className="w-12 h-12 text-pink-500 mx-auto mb-3" />
-                        <h1 className="text-3xl font-bold text-gray-800">Base Moodboard</h1>
-                        <p className="text-gray-600 mt-2">Express your mood as an NFT collectible</p>
-                    </div>
 
-                    <div className="space-y-6">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-3">
-                                Choose your mood emoji
-                            </label>
-                            <div className="grid grid-cols-6 gap-2">
-                                {MOOD_EMOJIS.map((emoji, index) => (
-                                    <button
-                                        key={index}
-                                        onClick={() => setSelectedEmoji(emoji)}
-                                        className={`p-3 text-2xl rounded-xl transition-all ${selectedEmoji === emoji
-                                            ? 'bg-purple-100 ring-2 ring-purple-500 scale-110'
-                                            : 'bg-gray-50 hover:bg-gray-100'
-                                            }`}
-                                    >
-                                        {emoji}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-3">
-                                Pick your mood color
-                            </label>
-                            <div className="grid grid-cols-3 gap-2">
-                                {MOOD_COLORS.map((mood, index) => (
-                                    <button
-                                        key={index}
-                                        onClick={() => setSelectedColor(mood)}
-                                        className={`p-3 rounded-xl transition-all ${mood.bg} ${selectedColor.name === mood.name
-                                            ? 'ring-2 ring-offset-2 ring-gray-400 scale-105'
-                                            : 'hover:scale-105'
-                                            }`}
-                                    >
-                                        <span className="text-white font-medium text-sm">{mood.name}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Describe your mood (max 20 chars)
-                            </label>
-                            <input
-                                type="text"
-                                value={moodText}
-                                onChange={(e) => setMoodText(e.target.value)}
-                                maxLength={20}
-                                placeholder="feeling amazing!"
-                                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            />
-                            <div className="text-right mt-1">
-                                <span className={`text-sm ${moodText.length > 20 ? 'text-red-500' : 'text-gray-500'}`}>
-                                    {moodText.length}/20
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-4">
-                            <h3 className="font-medium text-gray-800 mb-2">Preview</h3>
+        if (hash) {
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-green-100 via-blue-50 to-purple-100 p-4 flex items-center justify-center">
+                    <div className="max-w-md mx-auto bg-white rounded-3xl shadow-lg p-8 text-center">
+                        <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                        <h2 className="text-2xl font-bold text-gray-800 mb-2">Mood NFT Minted! 🎉</h2>
+                        <p className="text-gray-600 mb-6">
+                            Your daily mood is now immortalized on the blockchain
+                        </p>
+    
+                        <div className="mb-6">
                             <div
-                                className="flex flex-col items-center justify-center space-y-3 p-6 rounded-xl text-white shadow-lg"
+                                className="flex flex-col items-center justify-center space-y-3 p-6 rounded-xl text-white shadow-lg mx-4"
                                 style={{ backgroundColor: selectedColor.color }}
                             >
-                                <span className="text-4xl">{selectedEmoji}</span>
-                                <span className="font-bold text-lg text-center">{moodText}</span>
+                                <span className="text-5xl">{selectedEmoji}</span>
+                                <span className="font-bold text-xl">"{moodText}"</span>
                             </div>
-
-                            {moodText.trim() && moodText.length <= 20 && (
-                                <button
-                                    onClick={handleSetMood}
-                                    disabled={isLoading}
-                                    className="w-full mt-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 px-6 rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                        </div>
+    
+                        <div className="text-sm text-gray-600 space-y-1 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-4 mb-6">
+                            {hash && <button onClick={() => openUrl(`https://basescan.org/tx/${hash}`)}>View Transaction</button>}
+                            <p><strong>Minted:</strong> {new Date().toLocaleString()}</p>
+                            <p><strong>Network:</strong> Base</p>
+                            <p><strong>Owner:</strong> {address}</p>
+                        </div>
+    
+                        <button
+                            onClick={handleShare}
+                            className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold py-4 px-6 rounded-xl hover:from-green-600 hover:to-blue-600 transition-all transform hover:scale-105 shadow-lg"
+                        >
+                            <div className="flex items-center justify-center space-x-2">
+                                <Share2 className="w-5 h-5" />
+                                <span>Share My Mood</span>
+                            </div>
+                        </button>
+    
+                        <p className="text-xs text-gray-500 mt-2">
+                            This will open the cast composer with your mood details
+                        </p>
+                    </div>
+                </div>
+            );
+        } else {
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100 p-4">
+                    <div className="max-w-md mx-auto bg-white rounded-3xl shadow-lg p-6">
+                        <div className="text-center mb-6">
+                            <Heart className="w-12 h-12 text-pink-500 mx-auto mb-3" />
+                            <h1 className="text-3xl font-bold text-gray-800">Base Moodboard</h1>
+                            <p className="text-gray-600 mt-2">Express your mood as an NFT collectible</p>
+                        </div>
+    
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-3">
+                                    Choose your mood emoji
+                                </label>
+                                <div className="grid grid-cols-6 gap-2">
+                                    {MOOD_EMOJIS.map((emoji, index) => (
+                                        <button
+                                            key={index}
+                                            onClick={() => setSelectedEmoji(emoji)}
+                                            className={`p-3 text-2xl rounded-xl transition-all ${selectedEmoji === emoji
+                                                ? 'bg-purple-100 ring-2 ring-purple-500 scale-110'
+                                                : 'bg-gray-50 hover:bg-gray-100'
+                                                }`}
+                                        >
+                                            {emoji}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+    
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-3">
+                                    Pick your mood color
+                                </label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {MOOD_COLORS.map((mood, index) => (
+                                        <button
+                                            key={index}
+                                            onClick={() => setSelectedColor(mood)}
+                                            className={`p-3 rounded-xl transition-all ${mood.bg} ${selectedColor.name === mood.name
+                                                ? 'ring-2 ring-offset-2 ring-gray-400 scale-105'
+                                                : 'hover:scale-105'
+                                                }`}
+                                        >
+                                            <span className="text-white font-medium text-sm">{mood.name}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+    
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Describe your mood (max 20 chars)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={moodText}
+                                    onChange={(e) => setMoodText(e.target.value)}
+                                    maxLength={20}
+                                    placeholder="feeling amazing!"
+                                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                />
+                                <div className="text-right mt-1">
+                                    <span className={`text-sm ${moodText.length > 20 ? 'text-red-500' : 'text-gray-500'}`}>
+                                        {moodText.length}/20
+                                    </span>
+                                </div>
+                            </div>
+    
+                            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-4">
+                                <h3 className="font-medium text-gray-800 mb-2">Preview</h3>
+                                <div
+                                    className="flex flex-col items-center justify-center space-y-3 p-6 rounded-xl text-white shadow-lg"
+                                    style={{ backgroundColor: selectedColor.color }}
                                 >
-                                    {isLoading ? (
-                                        <div className="flex items-center justify-center">
-                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                                            {address ? 'Minting...' : 'Connecting...'}
-                                        </div>
-                                    ) : (
-                                        address ? 'Mint Mood NFT' : 'Set My Mood'
-                                    )}
-                                </button>
-                            )}
+                                    <span className="text-4xl">{selectedEmoji}</span>
+                                    <span className="font-bold text-lg text-center">{moodText}</span>
+                                </div>
+    
+                                {moodText.trim() && moodText.length <= 20 && (
+                                    <button
+                                        onClick={handleSetMood}
+                                        disabled={isPending || isLoading}
+                                        className="w-full mt-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 px-6 rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                                    >
+                                        {isPending ? (
+                                            <div className="flex items-center justify-center">
+                                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                                                {address ? 'Minting...' : 'Connecting...'}
+                                            </div>
+                                        ) : (
+                                            address ? 'Mint Mood NFT' : 'Set My Mood'
+                                        )}
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        );
+            );
+        }
+
+        
     }
 
     if (step === 'error') {
@@ -295,50 +350,50 @@ const Moodboard = ({ address }) => {
         );
     }
 
-    if (step === 'minted') {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-green-100 via-blue-50 to-purple-100 p-4 flex items-center justify-center">
-                <div className="max-w-md mx-auto bg-white rounded-3xl shadow-lg p-8 text-center">
-                    <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Mood NFT Minted! 🎉</h2>
-                    <p className="text-gray-600 mb-6">
-                        Your daily mood is now immortalized on the blockchain
-                    </p>
+    // if (step === 'minted') {
+    //     return (
+    //         <div className="min-h-screen bg-gradient-to-br from-green-100 via-blue-50 to-purple-100 p-4 flex items-center justify-center">
+    //             <div className="max-w-md mx-auto bg-white rounded-3xl shadow-lg p-8 text-center">
+    //                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+    //                 <h2 className="text-2xl font-bold text-gray-800 mb-2">Mood NFT Minted! 🎉</h2>
+    //                 <p className="text-gray-600 mb-6">
+    //                     Your daily mood is now immortalized on the blockchain
+    //                 </p>
 
-                    <div className="mb-6">
-                        <div
-                            className="flex flex-col items-center justify-center space-y-3 p-6 rounded-xl text-white shadow-lg mx-4"
-                            style={{ backgroundColor: selectedColor.color }}
-                        >
-                            <span className="text-5xl">{selectedEmoji}</span>
-                            <span className="font-bold text-xl">"{moodText}"</span>
-                        </div>
-                    </div>
+    //                 <div className="mb-6">
+    //                     <div
+    //                         className="flex flex-col items-center justify-center space-y-3 p-6 rounded-xl text-white shadow-lg mx-4"
+    //                         style={{ backgroundColor: selectedColor.color }}
+    //                     >
+    //                         <span className="text-5xl">{selectedEmoji}</span>
+    //                         <span className="font-bold text-xl">"{moodText}"</span>
+    //                     </div>
+    //                 </div>
 
-                    <div className="text-sm text-gray-600 space-y-1 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-4 mb-6">
-                        {hash && <button onClick={() => openUrl(`https://basescan.org/tx/${hash}`)}>View Transaction</button>}
-                        <p><strong>Minted:</strong> {new Date().toLocaleString()}</p>
-                        <p><strong>Network:</strong> Base</p>
-                        <p><strong>Owner:</strong> {address}</p>
-                    </div>
+    //                 <div className="text-sm text-gray-600 space-y-1 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-4 mb-6">
+    //                     {hash && <button onClick={() => openUrl(`https://basescan.org/tx/${hash}`)}>View Transaction</button>}
+    //                     <p><strong>Minted:</strong> {new Date().toLocaleString()}</p>
+    //                     <p><strong>Network:</strong> Base</p>
+    //                     <p><strong>Owner:</strong> {address}</p>
+    //                 </div>
 
-                    <button
-                        onClick={handleShare}
-                        className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold py-4 px-6 rounded-xl hover:from-green-600 hover:to-blue-600 transition-all transform hover:scale-105 shadow-lg"
-                    >
-                        <div className="flex items-center justify-center space-x-2">
-                            <Share2 className="w-5 h-5" />
-                            <span>Share My Mood</span>
-                        </div>
-                    </button>
+    //                 <button
+    //                     onClick={handleShare}
+    //                     className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold py-4 px-6 rounded-xl hover:from-green-600 hover:to-blue-600 transition-all transform hover:scale-105 shadow-lg"
+    //                 >
+    //                     <div className="flex items-center justify-center space-x-2">
+    //                         <Share2 className="w-5 h-5" />
+    //                         <span>Share My Mood</span>
+    //                     </div>
+    //                 </button>
 
-                    <p className="text-xs text-gray-500 mt-2">
-                        This will open the cast composer with your mood details
-                    </p>
-                </div>
-            </div>
-        );
-    }
+    //                 <p className="text-xs text-gray-500 mt-2">
+    //                     This will open the cast composer with your mood details
+    //                 </p>
+    //             </div>
+    //         </div>
+    //     );
+    // }
 }
 
 export default Moodboard;
