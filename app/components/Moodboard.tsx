@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Heart, Palette, Sparkles, CheckCircle, Share2, Calendar } from 'lucide-react';
+import { Heart, CheckCircle, Share2 } from 'lucide-react';
 import { useComposeCast, useOpenUrl } from '@coinbase/onchainkit/minikit';
 import { useWriteContract } from 'wagmi';
 import { abi } from "../../contracts/./abi";
@@ -23,16 +23,13 @@ const BASE_MOODBOARD_CONTRACT_ADDRESS = '0x04B57F3A91a360423B7D7D4dF77063FE5D787
 const Moodboard = ({ address }) => {
     const { composeCast } = useComposeCast();
     const openUrl = useOpenUrl();
-    const [step, setStep] = useState('form'); // 'form', 'error', 'minted'
+    const [step, setStep] = useState('form'); // 'form', 'error'
     const [selectedEmoji, setSelectedEmoji] = useState('😊');
     const [selectedColor, setSelectedColor] = useState(MOOD_COLORS[0]);
     const [moodText, setMoodText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [mintedNFT, setMintedNFT] = useState(null);
     const { data: hash, isPending, writeContract } = useWriteContract();
-
-    console.log('hash from first load: ', hash);
-    console.log('isPending from first load: ', isPending);
 
     const uploadToPinata = async (metadata: any) => {
         const res = await fetch('/api/uploadMetadata', {
@@ -56,26 +53,6 @@ const Moodboard = ({ address }) => {
         if (!moodText.trim() || moodText.length > 20) return;
 
         if (!address) {
-            // setIsLoading(true);
-            // try {
-            //     const result = await authenticate();
-            //     if (result.success) {
-            //         setStep('connected');
-            //     }
-            // } catch (error) {
-            //     console.error('Auth failed:', error);
-            // } finally {
-            //     setIsLoading(false);
-            // }
-            // return (
-            //     <div className="auth-required">
-            //         <h3>Authentication Required</h3>
-            //         <p>Please sign in to access this feature</p>
-            //         <button onClick={authenticate}>
-            //             Sign In with Farcaster
-            //         </button>
-            //     </div>
-            // );
             alert('Please connect your wallet to set your mood.');
             return;
         } else {
@@ -99,11 +76,6 @@ const Moodboard = ({ address }) => {
             };
 
             const ipfsURI = await uploadToPinata(metadata);
-            console.log('IPFS URI:', ipfsURI);
-
-            console.log("Minting Address: ", BASE_MOODBOARD_CONTRACT_ADDRESS)
-            console.log("My Address: ", address)
-            console.log("My Address: ", address as `0x${string}`)
             
             writeContract({
                 address: BASE_MOODBOARD_CONTRACT_ADDRESS as `0x${string}`,
@@ -120,12 +92,7 @@ const Moodboard = ({ address }) => {
                 timestamp: new Date(),
             };
 
-            console.log('hash from Mint function: ', hash);
-            console.log('isPending from Mint function: ', isPending);
-
-            setMintedNFT(nft);
-            // setStep('minted');
-            
+            setMintedNFT(nft);            
         } catch (error) {
             setStep('error');
             console.error('Minting failed:', error);
@@ -135,7 +102,6 @@ const Moodboard = ({ address }) => {
     };
 
     const handleShare = () => {
-        // Create a rich share message with the mood NFT details
         const shareText =
             `Just minted my daily mood NFT! ${selectedEmoji} "${moodText}" 
     
@@ -145,10 +111,8 @@ const Moodboard = ({ address }) => {
         
         #MoodNFT #Base #DailyMood #NFT`;
 
-        // Use MiniKit's composeCast to share to timeline
         composeCast({
             text: shareText,
-            // Optional: You can add embeds like your mini app URL or NFT image
             embeds: ['https://my-minikit-app-liart.vercel.app']
         });
     };
@@ -176,7 +140,7 @@ const Moodboard = ({ address }) => {
                         </div>
     
                         <div className="text-sm text-gray-600 space-y-1 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-4 mb-6">
-                            {hash && <button onClick={() => openUrl(`https://basescan.org/tx/${hash}`)}>View Transaction</button>}
+                            {hash && <button onClick={() => openUrl(`https://basescan.org/tx/${hash}`)}><strong>View Transaction</strong></button>}
                             <p><strong>Minted:</strong> {new Date().toLocaleString()}</p>
                             <p><strong>Network:</strong> Base</p>
                             <p><strong>Owner:</strong> {address}</p>
@@ -300,8 +264,6 @@ const Moodboard = ({ address }) => {
                 </div>
             );
         }
-
-        
     }
 
     if (step === 'error') {
@@ -349,51 +311,6 @@ const Moodboard = ({ address }) => {
             </div>
         );
     }
-
-    // if (step === 'minted') {
-    //     return (
-    //         <div className="min-h-screen bg-gradient-to-br from-green-100 via-blue-50 to-purple-100 p-4 flex items-center justify-center">
-    //             <div className="max-w-md mx-auto bg-white rounded-3xl shadow-lg p-8 text-center">
-    //                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-    //                 <h2 className="text-2xl font-bold text-gray-800 mb-2">Mood NFT Minted! 🎉</h2>
-    //                 <p className="text-gray-600 mb-6">
-    //                     Your daily mood is now immortalized on the blockchain
-    //                 </p>
-
-    //                 <div className="mb-6">
-    //                     <div
-    //                         className="flex flex-col items-center justify-center space-y-3 p-6 rounded-xl text-white shadow-lg mx-4"
-    //                         style={{ backgroundColor: selectedColor.color }}
-    //                     >
-    //                         <span className="text-5xl">{selectedEmoji}</span>
-    //                         <span className="font-bold text-xl">"{moodText}"</span>
-    //                     </div>
-    //                 </div>
-
-    //                 <div className="text-sm text-gray-600 space-y-1 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-4 mb-6">
-    //                     {hash && <button onClick={() => openUrl(`https://basescan.org/tx/${hash}`)}>View Transaction</button>}
-    //                     <p><strong>Minted:</strong> {new Date().toLocaleString()}</p>
-    //                     <p><strong>Network:</strong> Base</p>
-    //                     <p><strong>Owner:</strong> {address}</p>
-    //                 </div>
-
-    //                 <button
-    //                     onClick={handleShare}
-    //                     className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold py-4 px-6 rounded-xl hover:from-green-600 hover:to-blue-600 transition-all transform hover:scale-105 shadow-lg"
-    //                 >
-    //                     <div className="flex items-center justify-center space-x-2">
-    //                         <Share2 className="w-5 h-5" />
-    //                         <span>Share My Mood</span>
-    //                     </div>
-    //                 </button>
-
-    //                 <p className="text-xs text-gray-500 mt-2">
-    //                     This will open the cast composer with your mood details
-    //                 </p>
-    //             </div>
-    //         </div>
-    //     );
-    // }
 }
 
 export default Moodboard;

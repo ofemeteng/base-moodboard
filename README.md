@@ -24,7 +24,6 @@ Base Moodboard is a simple yet engaging Farcaster Mini App that allows users to 
 - **Base Network**: Low-cost, fast transactions on Coinbase's L2
 - **No Images Required**: Metadata stored directly on-chain
 - **ERC-721 Standard**: Compatible with all major NFT marketplaces
-- **Daily Limit**: One mood per day per user (enforced on-chain)
 
 ### 🔐 **Wallet & Authentication**
 - **MiniKit Integration**: Seamless wallet connection through Farcaster
@@ -89,7 +88,6 @@ NEXT_PUBLIC_ICON_URL=
 NEXT_PUBLIC_ONCHAINKIT_API_KEY=
 
 PINATA_JWT=
-BASE_MOODBOARD_CONTRACT_ADDRESS=
 
 # Frame metadata
 FARCASTER_HEADER=
@@ -156,7 +154,6 @@ npm run deploy
 
 ## 🔒 Security Features
 
-- **Daily Limits**: Contract enforces one mint per day per user
 - **Input Validation**: Text length and content validation
 - **Transaction Signing**: Users control their own private keys
 - **No External Dependencies**: Metadata stored on-chain
@@ -203,7 +200,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Transaction Fails**
 - Ensure you have enough ETH for gas on Base
-- Check that you haven't already minted today
 - Verify contract address is correct
 
 **Wallet Connection Issues**
